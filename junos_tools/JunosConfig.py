@@ -41,7 +41,15 @@ class JunosConfig():
                                     address = addr.find('./name').text
                                     self.interfaces[int_name]['units'][unit_number][familyName].append(address)
 
+    def get_hostname(self):
+        self.hostname = self.tree.find('.//system/host-name').text
+
+    def parse_config(self):
+        self.get_interfaces()
+        self.get_hostname()
+
     def __init__(self, config):
         self.config = config
         self.interfaces = {}
+        self.hostname = ''
         self.tree = etree.fromstring(self.config)
