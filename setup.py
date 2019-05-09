@@ -10,7 +10,7 @@ setup(
     version='0.1',
     packages=['junos_tools'],
     python_requires='>=3',
-    url='https://github.com/matucker/junos-tools',
+    url='https://github.com/mtucker502/junos-tools',
     license='MIT',
     author='mtucker502',
     author_email='github@netzolt.com',
@@ -19,7 +19,7 @@ setup(
     classifiers = [
         "Programming Language :: Python :: 3",
         "Intended Audience :: System Administrators",
-        "License :: MIT",
+        "License :: OSI Approved :: MIT",
         "Programming Language :: Python :: 3.7",
     ],
 )
