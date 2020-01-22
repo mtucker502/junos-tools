@@ -1,25 +1,19 @@
 from lxml import etree
+from lxml.etree import XMLSyntaxError
+from .utils import fix_xml, parse_hostname_from_filename, process_zip
 
-def parse_chassis_hardware(s):
+
+def parse_chassis_hardware(data=None, hostname=None, remove_builtins=True):
     """
     Parses output of "show chassis hardware" output in XML format and returns JSON dictionary
     """
 
-    # TODO: Use parser to skip extraneous console output causing errors
-    # parser = etree.XMLParser(recover=True)
-
-    # stree = etree.parse(s, parser=parser)
-    # serials = stree.findall("//serial-number")
-
-    # tree = etree.fromstring(s)
-
-    root = etree.fromstring(s)
+    data = fix_xml(data)
+    root = etree.fromstring(data)
     tree = etree.ElementTree(root)
 
     items = []
-    
-    ## TODO: Add for loop for multiple <chassis-inventory> in case single file
-    
+        
     chassis_serial = tree.find(".//{*}chassis-inventory/{*}chassis/{*}serial-number").text
     
     serials = tree.findall(".//{*}serial-number")
@@ -46,25 +40,52 @@ def parse_chassis_hardware(s):
             name=name,
             model_number=model_number,
             description=description,
-            parent=chassis_serial if chassis_serial != serial_number else None))
+            parent=chassis_serial if chassis_serial != serial_number else None,
+            hostname=hostname if hostname else "")
+            )
 
-    # TODO: remove "BUILT-IN" entries
+    if remove_builtins:
+        items = [item for item in items if item["serial_number"] != "BUILTIN"]
+    
     return dict(items=items)
+
 
 def parse_chassis_hardware_from_file(file):
     """Wrapper for parse_chassis_hardware()"""
+
+    hostname = parse_hostname_from_filename(file)
+
     with open(file, "r") as fh:
-        return parse_chassis_hardware(fh.read().replace('\n', ''))
+        stream = fh.read()
+        return parse_chassis_hardware(data=stream, hostname=hostname)
 
-def parse_chassis_hardware_from_zip(file):
-    # unzip
-    # all_items = list()
-    # for each file in zip
-        # all_items += parse_chassis_hardware_from_file (wrap this in try)
 
-    pass
-
-if __name__ == "__main__":
+def main():
     import sys
     import json
-    print(json.dumps(parse_chassis_hardware_from_file(sys.argv[1])))
+    from shutil import rmtree
+    
+    file = sys.argv[1]
+
+    if file.endswith(".zip"):
+        files, zip_dir = process_zip(file)
+    else:
+        files = [file]
+    
+    output = dict(items=[])
+    for f in files:
+        try:
+            output["items"] += parse_chassis_hardware_from_file(f)["items"]
+        except XMLSyntaxError as err:
+            output["errors"].append(dict(
+                hostname=parse_hostname_from_filename(f),
+                error=str(err)
+                ))
+    
+    if zip_dir:
+        rmtree(zip_dir)
+    
+    print(json.dumps(output))
+
+if __name__ == "__main__":
+    main()
