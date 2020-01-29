@@ -4,3 +4,4 @@ venv*
 __pycache__*
 dist*
 *egg-info/*
+example*.xml
