@@ -41,7 +41,8 @@ def parse_chassis_hardware(data=None, hostname=None, remove_builtins=True):
             model_number=model_number,
             description=description,
             parent=chassis_serial if chassis_serial != serial_number else None,
-            hostname=hostname if hostname else "")
+            hostname=hostname if hostname else "",
+            part_number=part_number)
             )
 
     if remove_builtins:
@@ -57,7 +58,7 @@ def parse_chassis_hardware_from_file(file, **kwargs):
 
     with open(file, "r") as fh:
         stream = fh.read()
-        return parse_chassis_hardware(data=stream, hostname=hostname)
+        return parse_chassis_hardware(data=stream, hostname=hostname, **kwargs)
 
 
 def main():
