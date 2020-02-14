@@ -50,7 +50,7 @@ def parse_chassis_hardware(data=None, hostname=None, remove_builtins=True):
     return dict(items=items)
 
 
-def parse_chassis_hardware_from_file(file):
+def parse_chassis_hardware_from_file(file, **kwargs):
     """Wrapper for parse_chassis_hardware()"""
 
     hostname = parse_hostname_from_filename(file)
@@ -75,7 +75,7 @@ def main():
     output = dict(items=[])
     for f in files:
         try:
-            output["items"] += parse_chassis_hardware_from_file(f)["items"]
+            output["items"] += parse_chassis_hardware_from_file(f, remove_builtins=False)["items"]
         except XMLSyntaxError as err:
             output["errors"].append(dict(
                 hostname=parse_hostname_from_filename(f),
