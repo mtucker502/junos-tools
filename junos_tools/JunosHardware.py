@@ -3,17 +3,22 @@ from lxml.etree import XMLSyntaxError
 from .utils import fix_xml, parse_hostname_from_filename, process_zip
 
 
-def parse_chassis_hardware(self, remove_builtins=True):
+def parse_chassis_hardware(data=None, hostname=None, remove_builtins=True)):
     """
     Parses output of "show chassis hardware" output in XML format and returns JSON dictionary
     """
+
+    data = fix_xml(data)
+    root = etree.fromstring(data)
+    tree = etree.ElementTree(root)
+
     items = []
 
-    hostname = self.hostname
+    current_hostname = hostname
     virtual_chassis = False
-    chassis_serial = self.tree.find(".//{*}chassis-inventory/{*}chassis/{*}serial-number").text
+    chassis_serial = tree.find(".//{*}chassis-inventory/{*}chassis/{*}serial-number").text
     chassis_model = ""
-    serials = self.tree.findall(".//{*}serial-number")
+    serials = tree.findall(".//{*}serial-number")
     for serial in serials: 
         module = serial.getparent()
 
@@ -40,7 +45,7 @@ def parse_chassis_hardware(self, remove_builtins=True):
             elif "FPC" in name:
                 chassis_serial = serial_number
                 chassis_model = model_number
-                hostname = self.hostname + "-" + name.replace(" ", "")
+                current_hostname = hostname + "-" + name.replace(" ", "")
 
 
 
@@ -52,7 +57,7 @@ def parse_chassis_hardware(self, remove_builtins=True):
             description=description,
             parent=chassis_serial if chassis_serial != serial_number else None,
             parent_model=chassis_model if chassis_model != model_number else None,
-            hostname=hostname if hostname else "",
+            hostname=current_hostname if current_hostname else "",
             part_number=part_number)
             )
 
@@ -69,7 +74,7 @@ def parse_chassis_hardware_from_file(file, **kwargs):
 
     with open(file, "r") as fh:
         stream = fh.read()
-        return parse_chassis_hardware(data=stream, hostname=hostname, **kwargs)
+        return parse_chassis_hardware(data=stream, current_hostname=hostname, **kwargs)
 
 
 def main():
