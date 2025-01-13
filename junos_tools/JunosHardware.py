@@ -3,7 +3,7 @@ from lxml.etree import XMLSyntaxError
 from .utils import fix_xml, parse_hostname_from_filename, process_zip
 
 
-def parse_chassis_hardware(data=None, hostname=None, remove_builtins=True)):
+def parse_chassis_hardware(data=None, hostname=None, remove_builtins=True):
     """
     Parses output of "show chassis hardware" output in XML format and returns JSON dictionary
     """
@@ -16,10 +16,12 @@ def parse_chassis_hardware(data=None, hostname=None, remove_builtins=True)):
 
     current_hostname = hostname
     virtual_chassis = False
-    chassis_serial = tree.find(".//{*}chassis-inventory/{*}chassis/{*}serial-number").text
+    chassis_serial = tree.find(
+        ".//{*}chassis-inventory/{*}chassis/{*}serial-number"
+    ).text
     chassis_model = ""
     serials = tree.findall(".//{*}serial-number")
-    for serial in serials: 
+    for serial in serials:
         module = serial.getparent()
 
         serial_number = serial.text
@@ -28,8 +30,8 @@ def parse_chassis_hardware(data=None, hostname=None, remove_builtins=True)):
         description = description.text if description is not None else None
         if description == "Virtual Chassis":
             virtual_chassis = True
-            continue  #skip this first entry
-        
+            continue  # skip this first entry
+
         name = module.find("./{*}name")
         name = name.text if name is not None else None
 
@@ -40,26 +42,27 @@ def parse_chassis_hardware(data=None, hostname=None, remove_builtins=True)):
         part_number = part_number.text if part_number is not None else None
 
         if virtual_chassis:
-            if "Routing Engine" in name:  #skip routing engines as they appear as FPCs....
+            if (
+                "Routing Engine" in name
+            ):  # skip routing engines as they appear as FPCs....
                 continue
             elif "FPC" in name:
                 chassis_serial = serial_number
                 chassis_model = model_number
                 current_hostname = hostname + "-" + name.replace(" ", "")
 
-
-
-
-        items.append(dict(
-            serial_number=serial_number,
-            name=name,
-            model_number=model_number,
-            description=description,
-            parent=chassis_serial if chassis_serial != serial_number else None,
-            parent_model=chassis_model if chassis_model != model_number else None,
-            hostname=current_hostname if current_hostname else "",
-            part_number=part_number)
+        items.append(
+            dict(
+                serial_number=serial_number,
+                name=name,
+                model_number=model_number,
+                description=description,
+                parent=chassis_serial if chassis_serial != serial_number else None,
+                parent_model=chassis_model if chassis_model != model_number else None,
+                hostname=current_hostname if current_hostname else "",
+                part_number=part_number,
             )
+        )
 
     if remove_builtins:
         items = [item for item in items if item["serial_number"] != "BUILTIN"]
@@ -81,28 +84,30 @@ def main():
     import sys
     import json
     from shutil import rmtree
-    
+
     file = sys.argv[1]
 
     if file.endswith(".zip"):
         files, zip_dir = process_zip(file)
     else:
         files = [file]
-    
+
     output = dict(items=[])
     for f in files:
         try:
-            output["items"] += parse_chassis_hardware_from_file(f, remove_builtins=False)["items"]
+            output["items"] += parse_chassis_hardware_from_file(
+                f, remove_builtins=False
+            )["items"]
         except XMLSyntaxError as err:
-            output["errors"].append(dict(
-                hostname=parse_hostname_from_filename(f),
-                error=str(err)
-                ))
-    
+            output["errors"].append(
+                dict(hostname=parse_hostname_from_filename(f), error=str(err))
+            )
+
     if zip_dir:
         rmtree(zip_dir)
-    
+
     print(json.dumps(output))
+
 
 if __name__ == "__main__":
     main()
