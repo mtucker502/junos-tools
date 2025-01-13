@@ -7,7 +7,7 @@ install_reqs = list(filter(None, req_lines))
 
 setup(
     name='junos-tools',
-    version='0.1.2',
+    version='0.1.3',
     packages=['junos_tools'],
     python_requires='>=3',
     url='https://github.com/mtucker502/junos-tools',
@@ -20,6 +20,6 @@ setup(
         "Programming Language :: Python :: 3",
         "Intended Audience :: System Administrators",
         "License :: OSI Approved :: MIT",
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.10",
     ],
 )

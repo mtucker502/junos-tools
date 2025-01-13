@@ -3,51 +3,62 @@ from lxml.etree import XMLSyntaxError
 from .utils import fix_xml, parse_hostname_from_filename, process_zip
 
 
-def parse_chassis_hardware(data=None, hostname=None, remove_builtins=True):
+def parse_chassis_hardware(self, remove_builtins=True):
     """
     Parses output of "show chassis hardware" output in XML format and returns JSON dictionary
     """
-
-    data = fix_xml(data)
-    root = etree.fromstring(data)
-    tree = etree.ElementTree(root)
-
     items = []
-        
-    chassis_serial = tree.find(".//{*}chassis-inventory/{*}chassis/{*}serial-number").text
-    
-    serials = tree.findall(".//{*}serial-number")
 
+    hostname = self.hostname
+    virtual_chassis = False
+    chassis_serial = self.tree.find(".//{*}chassis-inventory/{*}chassis/{*}serial-number").text
+    chassis_model = ""
+    serials = self.tree.findall(".//{*}serial-number")
     for serial in serials: 
-        parent = serial.getparent()
-        
+        module = serial.getparent()
+
         serial_number = serial.text
 
-        description = parent.find("./{*}description")
+        description = module.find("./{*}description")
         description = description.text if description is not None else None
-
-        name = parent.find("./{*}name")
+        if description == "Virtual Chassis":
+            virtual_chassis = True
+            continue  #skip this first entry
+        
+        name = module.find("./{*}name")
         name = name.text if name is not None else None
 
-        model_number = parent.find("./{*}model-number")
+        model_number = module.find("./{*}model-number")
         model_number = model_number.text if model_number is not None else None
 
-        part_number = parent.find("./{*}part-number")
+        part_number = module.find("./{*}part-number")
         part_number = part_number.text if part_number is not None else None
-        
+
+        if virtual_chassis:
+            if "Routing Engine" in name:  #skip routing engines as they appear as FPCs....
+                continue
+            elif "FPC" in name:
+                chassis_serial = serial_number
+                chassis_model = model_number
+                hostname = self.hostname + "-" + name.replace(" ", "")
+
+
+
+
         items.append(dict(
             serial_number=serial_number,
             name=name,
             model_number=model_number,
             description=description,
             parent=chassis_serial if chassis_serial != serial_number else None,
+            parent_model=chassis_model if chassis_model != model_number else None,
             hostname=hostname if hostname else "",
             part_number=part_number)
             )
 
     if remove_builtins:
         items = [item for item in items if item["serial_number"] != "BUILTIN"]
-    
+
     return dict(items=items)
 
 
